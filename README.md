@@ -5,7 +5,7 @@ The Base-X Encryptor Tool is a command-line utility which allows for data to be 
 #### How to Use:
 This information is also detailed in bxe --help after compiling.
 
-Usage: bxe `[-e|-d] [-o OUTPUT] [-if INPUTKEY] [-of OUTPUTKEY] [-v] [-f]` TARGET
+Usage: bxe `[-e|-d] [-o OUTPUT] [-if INPUTKEY] [-of OUTPUTKEY] [-v] [-f] TARGET`
 
 TARGET: The name of the file to be encrypted/decrypted.
 
