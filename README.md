@@ -15,17 +15,21 @@ TARGET: The name of the file to be encrypted/decrypted.
 
 -o OUTPUT: Provides the name of the output file. If not included, the file itself will be replaced with an encrypted form of its contents.
 
+-if INPUTKEY: Provides an input key file path.
+
+-of OUTPUTKEY: Provides an output key file path.
+
 -v: Activate verbose mode, which provides output to the user.
 
-All flags are case-sensitive.
+-f: Avoids requiring further input.
 
--f: Does not ask for any further input
+All flags are case-sensitive.
 
 To create input/output format key files, one must enter in a series of entirely distinct ASCII characters. Input format keys must contain some permutation of the entire character set that the target file uses (these can be manually created using the ASCII insertion panel in Notepad++), and each key needs to contain at least 2 characters.
 
 #### The Encryption Method:
 When this program encrypts data, it breaks the data up into blocks, each of which are first turned into a very large integer (on the order of 10^1000 in some cases), then exported in a different base. While the large integer is being created, the first format key reinterprets the numerical form of each character, and during the base conversion, the second format key determines the mapping between numbers and characters. Once a block is created, a 4-byte header of metadata containing the encrypted block length and the original block length is added to the beginning, to aid decryption.
-Since implementing arbitrary-size base conversion gives a complexity on the order of O(n^3), I've decided to limit the size of what could be encoded at a single time. The approximate encryption rate is on the order of a few kilobytes per second on an i5-7500K.
+The approximate encryption rate is on the order of a few kilobytes per second on an i5-7500K.
 Decryption works in much the same way as encryption does, except that the format keys are swapped.
 
 #### Source Code Information:
