@@ -1,2 +1,19 @@
-bxe:
-	gcc bxe.c variableint.c encrypt.c -o bxe.exe
+CC=gcc
+
+all: bxe
+
+bxe: bxe.o encrypt.o variableint.o include/sodium.h
+	$(CC) bxe.o encrypt.o variableint.o -lsodium -o out/bxe
+
+bxe.o: encrypt.h include/sodium.h bxe.c
+	$(CC) -I include -c bxe.c -lsodium
+
+encrypt.o: encrypt.c variableint.h variableint.o
+	$(CC) -c encrypt.c
+
+variableint.o: variableint.c
+	$(CC) -c variableint.c
+
+
+clean: 
+	rm bxe.o encrypt.o variableint.o out/bxe

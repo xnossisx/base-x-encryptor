@@ -7,6 +7,7 @@
 
 #include "variableint.h"
 #include "encrypt.h"
+#include "sodium.h"
 
 enum CommandFlag
 {
@@ -29,14 +30,16 @@ int nrDisChar(FILE *file);
 bool testDuplicates(int *data, int len);
 // "Reverses" a key
 void unformat(int *format, int new[256], int formatlen);
+// Applies a random permutation to a string
+void fischer_yates(char *string, int len);
 
-#define BLOCK_LENGTH 512
+#define BLOCK_LENGTH 512 
 
 int main(int argc, char **argv)
 {
     if (argc == 1)
     {
-        printf("\a\033[33mNo arguments included! Use \"bxe TARGET (optional: -e)\" to encrypt a file, or use bxe --help. \n\033[0m");
+        printf("\a\033[33mNo arguments included! Use \"bxe TARGET (optional: -e)\" to encrypt a file, or use bxe --help.\n\033[0m");
         return 1;
     }
 
@@ -51,7 +54,76 @@ int main(int argc, char **argv)
         printf("-f: Does not ask for any further input\n");
         printf("All flags are case-sensitive.\n");
         printf("To show this again, type bxe --help.\n");
+        printf("Alternative usage: bxe --gen [1<input base<224] [1<output base<224] [file root name] to produce random input and output keys \nwith output files having the name [file root name]I and [file root name]O for the input and output keys, respectively.\n");
         return 0;
+    }
+
+    if (strcmp(argv[1], "--gen") == 0)
+    {
+        if (argc!=5) 
+        {
+            printf("\a\033[33mIncorrect input: review bxe --help.\n\033[0m\n");
+            return EXIT_FAILURE;
+        }
+
+        unsigned int inputBase = (unsigned) atoi(argv[2]);
+        unsigned int outputBase = (unsigned) atoi(argv[3]);
+
+        if (!(1 < inputBase && inputBase <= 224 && 1 < outputBase && outputBase <= 224)) 
+        {
+            printf("Incorrect numerical input: review bxe --help.\n");
+            return EXIT_FAILURE;
+        }
+
+        char* outputFilePrefix = argv[4]; // Initialize output file names
+        char* outputIFileN = malloc(strlen(outputFilePrefix)+2);
+        char* outputOFileN = malloc(strlen(outputFilePrefix)+2);
+        outputIFileN = strncat(outputIFileN, outputFilePrefix, strlen(outputFilePrefix));
+        outputIFileN = strncat(outputIFileN, "I", 1);
+        outputOFileN = strncat(outputOFileN, outputFilePrefix, strlen(outputFilePrefix));
+        outputOFileN = strncat(outputOFileN, "O", 1);
+
+        if (sodium_init() < 0)
+        {
+            fprintf(stderr, "LibSodium initialization failed.");
+            return EXIT_FAILURE;
+        }
+        
+        FILE *outputFileO = fopen(outputOFileN, "wb");
+        FILE *outputFileI = fopen(outputIFileN, "wb");
+
+        if (!outputFileO || !outputFileI)
+        {
+            fprintf(stderr, "The required files could not be created.");
+            return EXIT_FAILURE;
+        }
+
+        char* scratchO = malloc(outputBase);
+        char* scratchI = malloc(inputBase);
+
+        for (char i = 32; i < 32 + outputBase; i++) 
+        {
+           scratchO[i-32] = (char) i;
+        }
+
+        for (char i = 32; i < 32 + inputBase; i++) 
+        {
+           scratchI[i-32] = (char) i;
+        }
+
+        // Perform Fisher-Yates shuffle
+        fischer_yates(scratchO, outputBase);
+        fischer_yates(scratchI, inputBase);
+
+        // Write and clean up
+        fwrite(scratchO, outputBase, sizeof(char), outputFileO);
+        fwrite(scratchI, inputBase, sizeof(char), outputFileI);
+        fclose(outputFileO);
+        fclose(outputFileI);
+        free(scratchO);
+        free(scratchI);
+
+        return EXIT_SUCCESS;
     }
 
     char* targetFileNM = 0; // These will be set later
@@ -260,7 +332,8 @@ int main(int argc, char **argv)
 
         for (int i = 0; i < targetLen / BLOCK_LENGTH; i++)
         {
-            lengthString encodedData = encode(targetData + i * BLOCK_LENGTH, inputUnformat, outputFormat, BLOCK_LENGTH, inputFormatSize, outputFormatSize, verbose);
+            lengthString encodedData = encode(targetData + i * BLOCK_LENGTH, inputUnformat, 
+                outputFormat, BLOCK_LENGTH, inputFormatSize, outputFormatSize, verbose);
             fwrite(&encodedData.len, 1, sizeof(BLOCKDATA), outputFile); // Write the encrypted length, then the original length
             BLOCKDATA siz = BLOCK_LENGTH;
             fwrite(&siz, 1, sizeof(BLOCKDATA), outputFile);
@@ -280,7 +353,8 @@ int main(int argc, char **argv)
 
         if (targetLen % BLOCK_LENGTH != 0)
         {
-            lengthString encodedData = encode(targetData + (targetLen - (targetLen % BLOCK_LENGTH)), inputUnformat, outputFormat, targetLen % BLOCK_LENGTH, inputFormatSize, outputFormatSize, verbose);
+            lengthString encodedData = encode(targetData + (targetLen - (targetLen % BLOCK_LENGTH)), inputUnformat, 
+                outputFormat, targetLen % BLOCK_LENGTH, inputFormatSize, outputFormatSize, verbose);
             fwrite(&encodedData.len, 1, sizeof(BLOCKDATA), outputFile);
             BLOCKDATA siz = targetLen % BLOCK_LENGTH;
             fwrite(&siz, 1, sizeof(BLOCKDATA), outputFile);
@@ -302,6 +376,7 @@ int main(int argc, char **argv)
         int outputUnformat[256];
         unformat(outputFormat, outputUnformat, outputFormatSize);
 
+        // Get file length and store file in memory
         fseek(targetFile, 0, SEEK_END);
         int targetLen = ftell(targetFile);
         fseek(targetFile, 0, SEEK_SET);
@@ -384,6 +459,7 @@ int nrDisChar(FILE *file)
     return amount;
 }
 
+// Just a simple comparison function between pointers to integers
 int compare(const void* a, const void* b)
 {
     int an = *(int*) a;
@@ -395,7 +471,7 @@ bool testDuplicates(int *data, int len)
 {
     int *data2 = malloc(len * sizeof(int));
     memcpy(data2, data, len * sizeof(int));
-    qsort(data2, len, sizeof(int), compare); // I learned about this from StackOverflow, but I made my own sort function for this particular instance.
+    qsort(data2, len, sizeof(int), compare); // I learned about this from StackOverflow, but I made my own comparison function.
     for (int i = 0; i < len - 1; i++)
     {
         if (data2[i] == data2[i + 1])
@@ -412,5 +488,20 @@ void unformat(int *format, int new[256], int formatlen)
     for (int i = 0; i < formatlen; i++)
     {
         new[(unsigned char)format[i]] = i;
+    }
+}
+
+/// @brief Randomly permutes a string based on libsodium's RNG
+/// @param string Characters used in representation
+/// @param len Length of list of characters 
+/// Requires sodium_init() to be called successfully
+void fischer_yates(char *string, int len)
+{
+    for (int i = len - 1; i > 0; i--)
+    {
+        int j = randombytes_uniform(i);
+        char temp = string[j];
+        string[j] = string[i];
+        string[i] = temp;
     }
 }
