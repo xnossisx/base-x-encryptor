@@ -3,6 +3,7 @@ CC=gcc
 all: bxe
 
 bxe: bxe.o encrypt.o variableint.o include/sodium.h
+	mkdir out
 	$(CC) bxe.o encrypt.o variableint.o -lsodium -o out/bxe
 
 bxe.o: encrypt.h include/sodium.h bxe.c
@@ -14,6 +15,6 @@ encrypt.o: encrypt.c variableint.h variableint.o
 variableint.o: variableint.c
 	$(CC) -c variableint.c
 
-
 clean: 
 	rm bxe.o encrypt.o variableint.o out/bxe
+	rm -r out
