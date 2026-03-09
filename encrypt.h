@@ -11,7 +11,7 @@ struct lenstr
 };
 typedef struct lenstr lengthString;
 
-lengthString encode(char *data, int *inputFormat, int *outputFormat, int datalen, int inputFormatLen, int outputFormatLen, bool verbose);
+lengthString encode(unsigned char *data, int *inputFormat, int *outputFormat, int datalen, int inputFormatLen, int outputFormatLen, bool verbose);
 
 /*
 // Basic plan: Convert from base (inputFormatSize) to base (outputFormatSize), they shouldn't share any traits

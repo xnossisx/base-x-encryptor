@@ -1,7 +1,7 @@
 #include "encrypt.h"
 #include <stdio.h>
 
-lengthString encode(char *data, int *inputFormat, int *outputFormat, int datalen, int inputFormatLen, int outputFormatLen, bool verbose)
+lengthString encode(unsigned char *data, int *inputFormat, int *outputFormat, int datalen, int inputFormatLen, int outputFormatLen, bool verbose)
 {
     VariableInt *dataVarInteger = malloc(sizeof(VariableInt));
     *dataVarInteger = variableInt();
@@ -15,7 +15,7 @@ lengthString encode(char *data, int *inputFormat, int *outputFormat, int datalen
             int reformat = inputFormat[(unsigned char)data[i]];
             if (reformat == -1)
             {
-                fprintf(stderr, "\033[31mError: The output format was insufficient to decrypt this file.\n\033[0m");
+                fprintf(stderr, "\033[31mError: One of the formats does not include a character in this encoding.\n\033[0m");
                 exit(EXIT_FAILURE);
             }
             multVarInt(dataVarInteger, &multer, dataVarInteger);

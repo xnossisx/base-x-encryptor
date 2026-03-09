@@ -54,7 +54,7 @@ int main(int argc, char **argv)
         printf("-f: Does not ask for any further input\n");
         printf("All flags are case-sensitive.\n");
         printf("To show this again, type bxe --help.\n");
-        printf("Alternative usage: bxe --gen [1<input base<224] [1<output base<224] [file root name] to produce random input and output keys \nwith output files having the name [file root name]I and [file root name]O for the input and output keys, respectively.\n");
+        printf("Alternative usage: bxe --gen [1<input base<=256] [1<output base<256] [file root name] to produce random input and output keys \nwith output files having the name [file root name]I and [file root name]O for the input and output keys, respectively.\n");
         return 0;
     }
 
@@ -69,10 +69,16 @@ int main(int argc, char **argv)
         unsigned int inputBase = (unsigned) atoi(argv[2]);
         unsigned int outputBase = (unsigned) atoi(argv[3]);
 
-        if (!(1 < inputBase && inputBase <= 224 && 1 < outputBase && outputBase <= 224)) 
+        if (!(1 < inputBase && inputBase <= 256 && 1 < outputBase && outputBase <= 256)) 
         {
             printf("Incorrect numerical input: review bxe --help.\n");
             return EXIT_FAILURE;
+        }
+
+        if (inputBase == outputBase)
+        {
+            printf("Note: The input format is equal in size to the output format, which will greatly decrease the security of this algorithm. Quitting...\n");
+            return 0;        
         }
 
         char* outputFilePrefix = argv[4]; // Initialize output file names
@@ -101,21 +107,19 @@ int main(int argc, char **argv)
         char* scratchO = malloc(outputBase);
         char* scratchI = malloc(inputBase);
 
-        for (int i = 32; i < 32 + outputBase; i++) 
+        for (int i = 0; i < outputBase; i++) 
         {
-           scratchO[i-32] = (char) i;
+           scratchO[i] = (char) i;
         }
 
-        for (int i = 32; i < 32 + inputBase; i++) 
+        for (int i = 0; i < inputBase; i++) 
         {
-           scratchI[i-32] = (char) i;
+           scratchI[i] = (char) i;
         }
 
         // Perform Fisher-Yates shuffle
         fischer_yates(scratchO, outputBase);
         fischer_yates(scratchI, inputBase);
-
-        
 
         // Write and clean up
         fwrite(scratchO, outputBase, sizeof(char), outputFileO);
@@ -310,7 +314,8 @@ int main(int argc, char **argv)
 
     if (inputFormatSize == outputFormatSize)
     {
-        printf("Note: The input format is equal in size to the output format, which will greatly decrease the security of this algorithm. Press Ctrl+C to exit.\n");
+        printf("Note: The input format is equal in size to the output format, which will greatly decrease the security of this algorithm. Quitting...\n");
+        return 0;        
     }
 
     if (encrypt)

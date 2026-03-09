@@ -29,7 +29,7 @@ TARGET: The name of the file to be encrypted/decrypted.
 
 All flags are case-sensitive.
 
-To create input/output format key files, one can run `bxe --gen [input len] [output len] [file name root]` to generate keys with the filenames `[file name root]I` and `[file name root]O`, respectively. Currently, the bases offered by this method are capped at 224, since all files are generated in extended ASCII.
+To create input/output format key files, one can run `bxe --gen [input len] [output len] [file name root]` to generate keys with the filenames `[file name root]I` and `[file name root]O`, respectively. Currently, the bases offered by this method are capped at 256, since all files are generated in extended ASCII.
 
 Alternatively, one may enter in a series of entirely distinct extended ASCII characters. Input format keys must contain some permutation of the entire character set that the target file uses (these can be manually created using the ASCII insertion panel in Notepad++), and each key needs to contain at least 2 characters.
 
